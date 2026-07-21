@@ -1,0 +1,6 @@
+{
+  "approve_below": 0.04696095836326292,
+  "investigate_at_or_above": 0.09295608680621309,
+  "target_negative_predictive_value": 0.99,
+  "selection_dataset": "validation"
+}

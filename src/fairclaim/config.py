@@ -1,0 +1,25 @@
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_PATH = PROJECT_ROOT / "fraud_oracle.csv"
+ARTIFACT_DIR = PROJECT_ROOT / "artifacts"
+REPORT_DIR = PROJECT_ROOT / "reports"
+LOCAL_STORAGE_DIR = PROJECT_ROOT / "local_storage"
+MODEL_BUNDLE_PATH = ARTIFACT_DIR / "model_bundle.joblib"
+IMAGE_MODEL_BUNDLE_PATH = ARTIFACT_DIR / "image_damage_bundle.joblib"
+DATABASE_PATH = LOCAL_STORAGE_DIR / "fairclaim.db"
+
+TARGET = "FraudFound_P"
+ID_COLUMNS = ["PolicyNumber"]
+PROTECTED_COLUMNS = ["Sex", "Age", "MaritalStatus"]
+RANDOM_STATE = 42
+
+# These fields are only used to report subgroup outcomes. They are deliberately
+# excluded from the production model features.
+AUDIT_ONLY_COLUMNS = PROTECTED_COLUMNS
+
+DECISION_LABELS = {
+    "approve": "Low calibrated fraud risk; suitable for normal processing.",
+    "abstain": "Uncertain score; human review or more evidence is required.",
+    "investigate": "Elevated fraud risk; route to an authorised investigator.",
+}

@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.streamlit/secrets.toml
+local_storage/*.db
+local_storage/*.db-*
+artifacts/*.joblib
+datasets/
+publication/
+FairClaim-MM_publication_package.zip
+.agents
+.codex
+fraud_oracle.csv
+insurance_claims.csv
+insurance-fraud-master.zip

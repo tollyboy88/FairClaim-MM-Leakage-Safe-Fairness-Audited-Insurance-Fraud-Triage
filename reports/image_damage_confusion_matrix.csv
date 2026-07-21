@@ -1,0 +1,7 @@
+,F_Breakage,F_Crushed,F_Normal,R_Breakage,R_Crushed,R_Normal
+F_Breakage,71,14,6,4,4,1
+F_Crushed,32,29,10,3,5,1
+F_Normal,13,8,77,2,0,0
+R_Breakage,15,5,1,17,16,6
+R_Crushed,7,6,0,18,20,9
+R_Normal,2,4,2,8,3,41

@@ -1,0 +1,22 @@
+{
+  "model_version": "fairclaim-20260720T214443Z",
+  "selected_model": "hist_gradient_boosting",
+  "selected_imbalance_strategy": "no_balancing",
+  "data_rows": 15420,
+  "train_rows": 9252,
+  "validation_rows": 3084,
+  "test_rows": 3084,
+  "protected_attributes_excluded_from_score": [
+    "Sex",
+    "Age",
+    "MaritalStatus"
+  ],
+  "id_columns_excluded_from_score": [
+    "PolicyNumber"
+  ],
+  "test_decision_counts": {
+    "approve": 1785,
+    "investigate": 830,
+    "abstain": 469
+  }
+}
