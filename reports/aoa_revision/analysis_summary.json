@@ -1,0 +1,56 @@
+{
+  "target_journal": "Applied Operations and Analytics",
+  "title": "Calibrated Selective Prediction for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Triage",
+  "rows": 15420,
+  "fraud_prevalence": 0.05985732814526589,
+  "primary_model": "HistGradientBoosting without balancing",
+  "thresholds": {
+    "approve_below": 0.04696095836326292,
+    "investigate_at_or_above": 0.09295608680621309,
+    "target_negative_predictive_value": 0.99
+  },
+  "held_out_metrics": {
+    "threshold": 0.09295608680621309,
+    "accuracy": 0.7603761348897535,
+    "precision": 0.16626506024096385,
+    "recall": 0.745945945945946,
+    "specificity": 0.7612969989651605,
+    "f1": 0.27192118226600986,
+    "f2": 0.4394904458598726,
+    "roc_auc": 0.8432562952742325,
+    "pr_auc": 0.2558651283448916,
+    "brier_score": 0.04997766155602519,
+    "tn": 2207,
+    "fp": 692,
+    "fn": 47,
+    "tp": 138,
+    "positive_prediction_rate": 0.2691309987029831
+  },
+  "temporal_validation": {
+    "training_year": 1994.0,
+    "validation_year": 1995.0,
+    "test_year": 1996.0,
+    "train_n": 6142.0,
+    "validation_n": 5195.0,
+    "test_n": 4083.0,
+    "validation_pr_auc": 0.13245123307938467,
+    "test_pr_auc": 0.1579033820339974,
+    "test_roc_auc": 0.7706421127973698,
+    "test_brier": 0.04840750728776675,
+    "test_precision": 0.10510141364474493,
+    "test_recall": 0.8028169014084507,
+    "approve_threshold": 0.010349754798920762,
+    "investigate_threshold": 0.03145358712990759
+  },
+  "repeated_seed_test_pr_auc_mean": 0.25506561539227135,
+  "repeated_seed_test_pr_auc_sd": 0.010695586010122547,
+  "threshold_bootstrap": {
+    "approve_ci_2_5": 0.031326712539297044,
+    "approve_median": 0.048577577784782576,
+    "approve_ci_97_5": 0.06996861611489637,
+    "investigate_ci_2_5": 0.07608596228780454,
+    "investigate_median": 0.09979431359840878,
+    "investigate_ci_97_5": 0.12388282370414738
+  },
+  "cost_assumption_note": "Illustrative GBP scenarios, not observed claim amounts. Abstained fraud is assigned 25% of missed-fraud cost, representing 75% recovery through manual review."
+}

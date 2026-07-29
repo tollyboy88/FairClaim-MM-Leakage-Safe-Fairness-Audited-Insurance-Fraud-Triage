@@ -1,0 +1,2 @@
+training_year,validation_year,test_year,train_n,validation_n,test_n,validation_pr_auc,test_pr_auc,test_roc_auc,test_brier,test_precision,test_recall,approve_threshold,investigate_threshold
+1994,1995,1996,6142,5195,4083,0.13245123307938467,0.1579033820339974,0.7706421127973698,0.04840750728776675,0.10510141364474493,0.8028169014084507,0.010349754798920762,0.03145358712990759
