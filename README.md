@@ -1,4 +1,4 @@
-# FairClaim-MM
+# Leakage-Safe, Fairness-Audited Insurance Fraud Triage
 
 FairClaim-MM is a local, fairness-aware insurance fraud research prototype. It trains a calibrated tabular fraud model and provides a Streamlit dashboard for three-way claim routing:
 
@@ -10,9 +10,15 @@ The output is decision support, not proof of fraud or an automatic claim denial.
 
 ## Current evidence contract
 
-The production score uses the structured fields in `fraud_oracle.csv`. `PolicyNumber` is excluded as an identifier. `Sex`, `Age`, and `MaritalStatus` are excluded from model inputs and retained only for subgroup auditing.
+The production score uses the structured fields in `fraud_oracle.csv`.
+`PolicyNumber` is excluded as an identifier. `Sex`, the exact numeric `Age`
+field, and `MaritalStatus` are excluded from model inputs and retained only for
+subgroup auditing. The categorical `AgeOfPolicyHolder` field remains in the
+original production model, so the research does not claim that every
+age-derived proxy was removed. The revised journal analysis compares this
+specification against a second model that also excludes
+`AgeOfPolicyHolder`.
 
-The two image datasets and Memgraph project are separate research branches. They are not randomly linked to tabular claims, and uploaded evidence does not affect the current tabular score.
 
 ## Run from VS Code or PowerShell
 

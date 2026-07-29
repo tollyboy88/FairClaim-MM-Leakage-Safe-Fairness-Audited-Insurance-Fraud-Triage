@@ -14,8 +14,10 @@ ID_COLUMNS = ["PolicyNumber"]
 PROTECTED_COLUMNS = ["Sex", "Age", "MaritalStatus"]
 RANDOM_STATE = 42
 
-# These fields are only used to report subgroup outcomes. They are deliberately
-# excluded from the production model features.
+# These exact fields are only used to report subgroup outcomes. The separate
+# categorical field AgeOfPolicyHolder remains a model feature in the original
+# specification and is evaluated as an age proxy in the journal sensitivity
+# analysis.
 AUDIT_ONLY_COLUMNS = PROTECTED_COLUMNS
 
 DECISION_LABELS = {

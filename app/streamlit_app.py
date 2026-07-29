@@ -124,7 +124,11 @@ def overview_page(bundle: dict) -> None:
             "See docs/decision_calculation.md for the full equation."
         )
     left, right = st.columns(2)
-    comparison = load_csv(REPORT_DIR / "model_comparison.csv")
+    revision_tables = PROJECT_ROOT / "publication" / "aoa" / "tables"
+    revised_comparison = revision_tables / "table_01_model_family_no_balancing.csv"
+    comparison = load_csv(
+        revised_comparison if revised_comparison.exists() else REPORT_DIR / "model_comparison.csv"
+    )
     with left:
         st.subheader("Validation model comparison")
         fig = px.bar(
@@ -141,7 +145,12 @@ def overview_page(bundle: dict) -> None:
         counts = predictions["decision"].value_counts().rename_axis("decision").reset_index(name="claims")
         fig = px.pie(counts, names="decision", values="claims", hole=0.45)
         st.plotly_chart(fig, width="stretch")
-    imbalance_path = REPORT_DIR / "imbalance_strategy_comparison.csv"
+    revised_imbalance = revision_tables / "table_02_hgb_imbalance_strategies.csv"
+    imbalance_path = (
+        revised_imbalance
+        if revised_imbalance.exists()
+        else REPORT_DIR / "imbalance_strategy_comparison.csv"
+    )
     if imbalance_path.exists():
         st.subheader("Class-imbalance strategy comparison")
         imbalance = load_csv(imbalance_path)
@@ -149,7 +158,12 @@ def overview_page(bundle: dict) -> None:
             "Resampling strategies were applied inside training folds only. No balancing achieved the strongest validation PR-AUC."
         )
         st.dataframe(imbalance, width="stretch", hide_index=True)
-    decision_summary_path = REPORT_DIR / "decision_policy_test_summary.csv"
+    revised_decisions = revision_tables / "table_05_decision_regions_with_ci.csv"
+    decision_summary_path = (
+        revised_decisions
+        if revised_decisions.exists()
+        else REPORT_DIR / "decision_policy_test_summary.csv"
+    )
     if decision_summary_path.exists():
         st.subheader("Observed outcomes by decision route")
         st.dataframe(load_csv(decision_summary_path), width="stretch", hide_index=True)
@@ -438,6 +452,101 @@ def audit_page(bundle: dict) -> None:
     )
 
 
+def operational_research_page() -> None:
+    st.title("Operational research evidence")
+    st.write(
+        "These results support the revised operations-research manuscript. They are held-out "
+        "benchmark analyses, not estimates of realised insurer savings or production performance."
+    )
+    table_dir = PROJECT_ROOT / "publication" / "aoa" / "tables"
+    figure_dir = PROJECT_ROOT / "publication" / "aoa" / "figures"
+    required = table_dir / "table_09_fixed_capacity.csv"
+    if not required.exists():
+        st.info(
+            "Run `python scripts/run_aoa_revision_analyses.py` to generate the operational "
+            "evidence package."
+        )
+        return
+
+    capacity = load_csv(required)
+    costs = load_csv(table_dir / "table_10_operational_cost_sensitivity.csv")
+    age_proxy = load_csv(table_dir / "table_03_age_proxy_sensitivity.csv")
+    calibration = load_csv(table_dir / "table_04_calibration_comparison.csv")
+    fairness = load_csv(table_dir / "table_08_three_action_fairness.csv")
+    temporal = load_csv(table_dir / "table_14_temporal_validation.csv")
+
+    st.subheader("Investigation capacity")
+    st.caption("Fraud captured when investigators can review only the highest-risk claims.")
+    st.plotly_chart(
+        px.line(
+            capacity,
+            x="investigation_capacity",
+            y="fraud_capture_rate",
+            markers=True,
+            hover_data=["claims_investigated", "investigation_precision"],
+            labels={
+                "investigation_capacity": "Share of claims investigated",
+                "fraud_capture_rate": "Share of labelled fraud captured",
+            },
+        ),
+        width="stretch",
+    )
+    st.dataframe(capacity, width="stretch", hide_index=True)
+
+    st.subheader("Illustrative cost sensitivity")
+    st.warning(
+        "The GBP amounts are declared scenarios. They are not observed claim losses, prices, "
+        "or guaranteed savings and must be replaced with an insurer's governed cost matrix."
+    )
+    st.plotly_chart(
+        px.bar(
+            costs,
+            x="scenario",
+            y="expected_cost_per_claim",
+            color="policy",
+            barmode="group",
+            labels={"expected_cost_per_claim": "Illustrative expected cost per claim (£)"},
+        ),
+        width="stretch",
+    )
+    with st.expander("Cost assumptions and complete results"):
+        st.dataframe(costs, width="stretch", hide_index=True)
+
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Age-proxy sensitivity")
+        st.dataframe(age_proxy, width="stretch", hide_index=True)
+    with right:
+        st.subheader("Calibration comparison")
+        st.dataframe(calibration, width="stretch", hide_index=True)
+
+    st.subheader("Three-action fairness")
+    attribute = st.selectbox(
+        "Protected grouping for action audit",
+        fairness["attribute"].drop_duplicates().tolist(),
+        key="operational_fairness_attribute",
+    )
+    subset = fairness[fairness["attribute"] == attribute]
+    action_rates = subset.melt(
+        id_vars=["group"],
+        value_vars=["approval_rate", "abstention_rate", "investigation_rate"],
+        var_name="action",
+        value_name="rate",
+    )
+    st.plotly_chart(
+        px.bar(action_rates, x="group", y="rate", color="action", barmode="group"),
+        width="stretch",
+    )
+    st.dataframe(subset, width="stretch", hide_index=True)
+
+    st.subheader("Temporal stress test")
+    st.caption("Train on 1994, select thresholds on 1995, and test on 1996; Year is excluded as a predictor.")
+    st.dataframe(temporal, width="stretch", hide_index=True)
+    with st.expander("Manuscript figures"):
+        for path in sorted(figure_dir.glob("*.png")):
+            st.image(str(path), caption=path.stem.replace("_", " ").title(), width="stretch")
+
+
 def history_page(bundle: dict) -> None:
     st.title("Local decision history")
     st.write(f"Predictions are stored only in `{DATABASE_PATH}` on this computer.")
@@ -463,7 +572,14 @@ def main() -> None:
     st.sidebar.title("FairClaim-MM")
     page = st.sidebar.radio(
         "Navigate",
-        ["Overview", "Single claim", "Batch upload", "Fairness & explanations", "Local history"],
+        [
+            "Overview",
+            "Single claim",
+            "Batch upload",
+            "Fairness & explanations",
+            "Operational research",
+            "Local history",
+        ],
     )
     st.sidebar.caption(f"Model: {bundle['model_version']}")
     if page == "Overview":
@@ -474,6 +590,8 @@ def main() -> None:
         batch_page(bundle)
     elif page == "Fairness & explanations":
         audit_page(bundle)
+    elif page == "Operational research":
+        operational_research_page()
     else:
         history_page(bundle)
 

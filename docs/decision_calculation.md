@@ -2,7 +2,12 @@
 
 ## 1. Structured-data probability
 
-The fraud model receives 28 structured claim fields. `PolicyNumber`, `Sex`, `Age`, and `MaritalStatus` do not enter the score.
+The original fraud model receives 28 structured claim fields. `PolicyNumber`,
+`Sex`, the exact numeric `Age` field, and `MaritalStatus` do not enter the
+score. `AgeOfPolicyHolder` is a separate categorical age-band field and remains
+in the original specification. It must not be described as removed. The
+revised paper compares this model with a sensitivity specification that also
+excludes `AgeOfPolicyHolder`.
 
 Numeric inputs are median-imputed and standardised. Categorical inputs are mode-imputed and one-hot encoded. A histogram gradient-boosting classifier produces a raw decision score for each of five training-fold models.
 
