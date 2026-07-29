@@ -19,11 +19,6 @@ age-derived proxy was removed. The revised journal analysis compares this
 specification against a second model that also excludes
 `AgeOfPolicyHolder`.
 
-The two image datasets and Memgraph project are separate research branches. They are not randomly linked to tabular claims, and uploaded evidence does not affect the current tabular score.
-
-The main journal paper is no longer presented as multimodal fraud detection.
-The image branch is excluded from its primary claims and retained only as
-separate prototype work.
 
 ## Run from VS Code or PowerShell
 
@@ -60,21 +55,3 @@ See `docs/multimodal_data_assessment.md` for the added INSURBIAS benchmark, reje
 - The test set is evaluated once and is not used for model or threshold selection.
 
 Generated files are stored under `artifacts/` and `reports/`.
-
-## Revised operational-analytics study
-
-The Applied Operations and Analytics revision is reproduced with:
-
-```powershell
-python scripts\run_aoa_revision_analyses.py
-```
-
-It adds a methodologically consistent unweighted model-family comparison,
-age-proxy sensitivity, sigmoid-versus-isotonic calibration, coverage-risk and
-framework ablations, three-action fairness, fixed investigation capacities,
-illustrative cost sensitivity, bootstrap confidence intervals, repeated
-random seeds, and a 1994-to-1996 temporal validation experiment.
-
-The software is released under the MIT licence. Citation metadata are provided
-in `CITATION.cff`, and `.github/workflows/reproducibility.yml` reruns the
-public-data tabular workflow and non-image tests.
