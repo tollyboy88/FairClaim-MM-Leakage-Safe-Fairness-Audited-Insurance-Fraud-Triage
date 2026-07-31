@@ -6,7 +6,7 @@ authors:
   - family-names: "Adetola"
     given-names: "Adebayo Aliu"
 version: 1.0.0
-date-released: 2026-07-29
+date-released: 2026-07-31
 repository-code: "https://github.com/tollyboy88/FairClaim-MM-Leakage-Safe-Fairness-Audited-Insurance-Fraud-Triage"
 url: "https://github.com/tollyboy88/FairClaim-MM-Leakage-Safe-Fairness-Audited-Insurance-Fraud-Triage"
 license: MIT
