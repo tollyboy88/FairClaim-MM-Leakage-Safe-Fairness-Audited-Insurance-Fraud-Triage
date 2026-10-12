@@ -1,10 +1,11 @@
 pandas>=3.0,<4
 numpy>=2.0,<3
-scikit-learn>=1.8,<2
+scikit-learn==1.9.0
 imbalanced-learn>=0.14,<1
 joblib>=1.4,<2
 streamlit>=1.55,<2
 plotly>=6.0,<7
+matplotlib>=3.10,<4
 Pillow>=11,<13
 scikit-image>=0.26,<1
 pytest>=9,<10

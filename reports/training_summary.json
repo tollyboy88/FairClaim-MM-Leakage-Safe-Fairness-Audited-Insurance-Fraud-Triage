@@ -1,5 +1,5 @@
 {
-  "model_version": "fairclaim-20260720T214443Z",
+  "model_version": "fairclaim-20261012T140115Z",
   "selected_model": "hist_gradient_boosting",
   "selected_imbalance_strategy": "no_balancing",
   "data_rows": 15420,
@@ -11,12 +11,15 @@
     "Age",
     "MaritalStatus"
   ],
+  "age_proxy_features_retained": [
+    "AgeOfPolicyHolder"
+  ],
   "id_columns_excluded_from_score": [
     "PolicyNumber"
   ],
   "test_decision_counts": {
     "approve": 1785,
     "investigate": 830,
-    "abstain": 469
+    "defer": 469
   }
 }

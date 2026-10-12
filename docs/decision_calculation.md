@@ -2,7 +2,11 @@
 
 ## 1. Structured-data probability
 
-The fraud model receives 28 structured claim fields. `PolicyNumber`, `Sex`, `Age`, and `MaritalStatus` do not enter the score.
+The original fraud model receives 28 structured claim fields. `PolicyNumber`,
+`Sex`, the exact numeric `Age` field, and `MaritalStatus` do not enter the
+score. `AgeOfPolicyHolder` is a separate categorical age-band field and remains
+in the original specification. It must not be described as removed. A separate
+sensitivity specification can also exclude `AgeOfPolicyHolder`.
 
 Numeric inputs are median-imputed and standardised. Categorical inputs are mode-imputed and one-hot encoded. A histogram gradient-boosting classifier produces a raw decision score for each of five training-fold models.
 
@@ -40,7 +44,7 @@ if p < 0.0469609584:
 elif p >= 0.0929560868:
     tabular_decision = "investigate"
 else:
-    tabular_decision = "abstain"
+    tabular_decision = "defer"
 ```
 
 The boundary is selected on validation data and evaluated once on the untouched test data.
@@ -50,8 +54,8 @@ The boundary is selected on validation data and evaluated once on the untouched 
 The damage-image classifier separately predicts one of six classes: front/rear × normal/breakage/crushed. Notes are scanned for explicit front/rear and damage terms.
 
 - A damage label by itself does not imply fraud.
-- A high-confidence image/note contradiction moves `approve` to `abstain`.
-- A high-confidence contradiction moves `abstain` or `investigate` to `investigate`.
+- A high-confidence image/note contradiction moves `approve` to `defer`.
+- A high-confidence contradiction moves `defer` or `investigate` to `investigate`.
 - Consistent or insufficient evidence never reduces the tabular referral route.
 - Audio files are stored locally; only a supplied/verified transcript participates in the current consistency check.
 

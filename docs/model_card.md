@@ -14,7 +14,13 @@ Six model families are compared using five-fold training cross-validation and a 
 
 ## Protected attributes
 
-`Sex`, `Age`, and `MaritalStatus` do not enter the production score. They are retained for post-prediction fairness measurement. Exclusion does not guarantee fairness because non-protected features can act as proxies and subgroup fraud prevalence can differ.
+`Sex`, the exact numeric `Age` field, and `MaritalStatus` do not enter the
+production score. They are retained for post-prediction fairness measurement.
+The categorical `AgeOfPolicyHolder` field remains a model input in the original
+specification and is explicitly treated as a possible age proxy. A sensitivity
+model can be trained without it. Removing named
+protected fields does not guarantee fairness because remaining features can act
+as proxies and subgroup fraud prevalence can differ.
 
 ## Class imbalance
 
@@ -23,7 +29,7 @@ The training partition contains 554 fraud and 8,698 non-fraud records. Five stra
 ## Decision policy
 
 - Below the low-risk threshold: `approve`
-- Between low- and high-risk thresholds: `abstain`
+- Between low- and high-risk thresholds: `defer`
 - At or above the high-risk threshold: `investigate`
 
 Thresholds are model-versioned and stored in `reports/decision_thresholds.json`. An investigation referral is not a fraud determination.
@@ -39,5 +45,7 @@ Global explanation uses held-out permutation importance. Local explanation repla
 - Damage images do not carry fraud labels.
 - Ecommerce evidence is synthetic.
 - Fairness estimates for small and intersectional groups are unstable.
+- `AgeOfPolicyHolder` may preserve age-related information unless the
+  age-excluded sensitivity specification is selected.
 - Uploaded evidence is stored for review but is not scored by the current tabular model.
 - The separate six-class image-damage baseline has only 55.4% held-out accuracy. It is suitable for prototype evidence display and high-confidence contradiction checks, not autonomous claim adjudication.

@@ -9,7 +9,7 @@ def test_bundle_scores_single_and_batch():
     values = bundle["reference_values"].copy()
     single = score_single(values, bundle)
     assert 0 <= single["fraud_probability"] <= 1
-    assert single["decision"] in {"approve", "abstain", "investigate"}
+    assert single["decision"] in {"approve", "defer", "investigate"}
     assert single["explanation"]
 
     batch = score_frame(pd.DataFrame([values, values]), bundle)
