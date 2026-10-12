@@ -4,7 +4,7 @@ FairClaim-MM is a local, fairness-aware insurance fraud research prototype. It t
 
 - **approve**: low calibrated fraud risk; continue normal processing
 - **investigate**: elevated fraud risk; refer to an authorised investigator
-- **abstain**: uncertain score; obtain more evidence or human review
+- **defer** (`abstain` in exported data): intermediate fraud risk; obtain more evidence or human review
 
 The output is decision support, not proof of fraud or an automatic claim denial.
 
@@ -43,9 +43,19 @@ See `docs/multimodal_data_assessment.md` for the added INSURBIAS benchmark, reje
 - Stratified 60/20/20 train/validation/test split.
 - Preprocessing is fitted inside model pipelines.
 - Five-fold cross-validation is performed only within training data.
-- The strongest model is selected using validation PR-AUC.
+- The strongest model family is selected using mean five-fold training CV PR-AUC; validation PR-AUC is a secondary check.
 - Probability calibration is fitted from training folds.
 - Decision thresholds are selected on validation predictions.
 - The test set is evaluated once and is not used for model or threshold selection.
 
 Generated files are stored under `artifacts/` and `reports/`.
+
+## Revision analyses
+
+`scripts/train_models.py` also writes reviewer-response analyses to `reports/`:
+
+- `threshold_policy_bootstrap_summary.csv`: how validation threshold variation propagates to held-out approval NPV, fraud capture, investigation precision, and defer coverage.
+- `triage_action_fairness_by_group.csv` and `triage_action_gap_confidence_intervals.csv`: group action rates, TPR/FNR, Wilson intervals, and bootstrap intervals for between-group gaps.
+- `binary_vs_triage_cost_comparison.csv`: an illustrative cost comparison where binary and three-way policies use the identical investigation threshold and therefore the same investigation capacity.
+
+The intermediate region is a risk-based defer region. It is not presented as a direct predictive-uncertainty estimate.
