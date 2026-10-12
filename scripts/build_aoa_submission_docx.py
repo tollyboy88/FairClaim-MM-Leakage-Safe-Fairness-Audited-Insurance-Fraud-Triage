@@ -1,7 +1,7 @@
 """Build the Applied Operations and Analytics Word submission files.
 
 The anonymous manuscript is deliberately review-friendly: one file containing
-text, tables, and figures, with double spacing, continuous line numbering, and
+text, tables, and figures, with double spacing and
 page numbers. Author-identifying information is confined to the title page and
 cover letter.
 """
@@ -253,7 +253,7 @@ def build_anonymous_manuscript(
     highlight_changes: bool = False,
 ) -> Path:
     doc = Document()
-    configure_document(doc, line_numbers=True)
+    configure_document(doc, line_numbers=False)
     title = doc.add_paragraph(style="Title")
     remove_paragraph_borders(title)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
