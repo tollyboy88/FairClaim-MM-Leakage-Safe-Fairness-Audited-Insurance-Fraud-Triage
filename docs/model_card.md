@@ -10,7 +10,7 @@ Fraud Oracle: 15,420 historical motor-insurance records, 923 labelled fraud case
 
 ## Model selection
 
-Six model families are compared using five-fold training cross-validation and a separate validation set. Selection uses validation PR-AUC. The selected classifier is calibrated using training folds. Thresholds are selected using validation predictions, and final metrics are generated once on the untouched test set.
+Six model families are compared using five-fold training cross-validation and a separate validation set. The primary selection criterion is mean five-fold training CV PR-AUC; validation PR-AUC is a secondary check. The selected classifier is calibrated using training folds. Thresholds are selected using validation predictions, and final metrics are generated once on the untouched test set.
 
 ## Protected attributes
 
@@ -18,7 +18,7 @@ Six model families are compared using five-fold training cross-validation and a 
 
 ## Class imbalance
 
-The training partition contains 554 fraud and 8,698 non-fraud records. Five strategies were compared inside training folds: no balancing, balanced class weights, random undersampling, random oversampling, and SMOTENC. No balancing achieved the strongest validation PR-AUC and was selected. The full comparison is stored in `reports/imbalance_strategy_comparison.csv`.
+The training partition contains 554 fraud and 8,698 non-fraud records. Five strategies were compared inside training folds: no balancing, balanced class weights, random undersampling, random oversampling, and SMOTENC. No balancing achieved the strongest validation PR-AUC in the recorded imbalance comparison. The full comparison is stored in `reports/imbalance_strategy_comparison.csv`.
 
 ## Decision policy
 
