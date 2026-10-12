@@ -75,4 +75,4 @@ def assign_decision(probability: float, thresholds: DecisionThresholds | dict) -
         return "approve"
     if probability >= investigate:
         return "investigate"
-    return "abstain"
+    return "defer"

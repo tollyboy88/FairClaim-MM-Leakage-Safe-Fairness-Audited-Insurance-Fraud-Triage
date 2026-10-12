@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software or its results, please cite the associated article and this software release."
-title: "Calibrated Selective Prediction for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Triage"
+title: "Calibrated Three-Way Triage for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Screening"
 type: software
 authors:
   - family-names: "Aliu"
@@ -12,7 +12,7 @@ url: "https://github.com/tollyboy88/FairClaim-MM-Leakage-Safe-Fairness-Audited-I
 license: MIT
 keywords:
   - insurance fraud
-  - selective prediction
+  - three-way triage
   - calibration
   - fairness audit
   - operational analytics

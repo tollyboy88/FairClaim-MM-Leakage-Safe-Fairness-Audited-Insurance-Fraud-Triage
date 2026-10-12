@@ -4,7 +4,7 @@ FairClaim-MM is a local, fairness-aware insurance fraud research prototype. It t
 
 - **approve**: low calibrated fraud risk; continue normal processing
 - **investigate**: elevated fraud risk; refer to an authorised investigator
-- **abstain**: uncertain score; obtain more evidence or human review
+- **defer**: intermediate-risk score; obtain more evidence or human review
 
 The output is decision support, not proof of fraud or an automatic claim denial.
 

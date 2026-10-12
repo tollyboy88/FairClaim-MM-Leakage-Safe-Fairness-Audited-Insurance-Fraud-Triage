@@ -45,7 +45,7 @@ if p < 0.0469609584:
 elif p >= 0.0929560868:
     tabular_decision = "investigate"
 else:
-    tabular_decision = "abstain"
+    tabular_decision = "defer"
 ```
 
 The boundary is selected on validation data and evaluated once on the untouched test data.
@@ -55,8 +55,8 @@ The boundary is selected on validation data and evaluated once on the untouched 
 The damage-image classifier separately predicts one of six classes: front/rear × normal/breakage/crushed. Notes are scanned for explicit front/rear and damage terms.
 
 - A damage label by itself does not imply fraud.
-- A high-confidence image/note contradiction moves `approve` to `abstain`.
-- A high-confidence contradiction moves `abstain` or `investigate` to `investigate`.
+- A high-confidence image/note contradiction moves `approve` to `defer`.
+- A high-confidence contradiction moves `defer` or `investigate` to `investigate`.
 - Consistent or insufficient evidence never reduces the tabular referral route.
 - Audio files are stored locally; only a supplied/verified transcript participates in the current consistency check.
 

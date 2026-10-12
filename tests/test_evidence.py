@@ -24,5 +24,5 @@ def test_contradiction_only_escalates_route():
     images = [{"confidence": 0.9, "vehicle_side": "rear", "damage_type": "breakage"}]
     consistency = assess_evidence_consistency(images, "The front was crushed", "")
     assert consistency["status"] == "contradiction"
-    assert fuse_review_route("approve", "contradiction")[0] == "abstain"
+    assert fuse_review_route("approve", "contradiction")[0] == "defer"
     assert fuse_review_route("investigate", "consistent")[0] == "investigate"

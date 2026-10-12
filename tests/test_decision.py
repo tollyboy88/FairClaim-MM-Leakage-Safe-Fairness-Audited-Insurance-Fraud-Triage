@@ -7,8 +7,8 @@ from fairclaim.decision import assign_decision, select_thresholds
 def test_three_way_decision_boundaries():
     thresholds = {"approve_below": 0.2, "investigate_at_or_above": 0.7}
     assert assign_decision(0.1, thresholds) == "approve"
-    assert assign_decision(0.2, thresholds) == "abstain"
-    assert assign_decision(0.69, thresholds) == "abstain"
+    assert assign_decision(0.2, thresholds) == "defer"
+    assert assign_decision(0.69, thresholds) == "defer"
     assert assign_decision(0.7, thresholds) == "investigate"
 
 

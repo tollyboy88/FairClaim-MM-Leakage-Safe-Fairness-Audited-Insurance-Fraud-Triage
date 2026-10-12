@@ -22,6 +22,9 @@ AUDIT_ONLY_COLUMNS = PROTECTED_COLUMNS
 
 DECISION_LABELS = {
     "approve": "Low calibrated fraud risk; suitable for normal processing.",
-    "abstain": "Uncertain score; human review or more evidence is required.",
+    "defer": "Intermediate calibrated risk; obtain more evidence or human review.",
+    # Backward-compatible label for locally stored decisions created before the
+    # terminology was aligned with the manuscript.
+    "abstain": "Legacy defer label; obtain more evidence or human review.",
     "investigate": "Elevated fraud risk; route to an authorised investigator.",
 }

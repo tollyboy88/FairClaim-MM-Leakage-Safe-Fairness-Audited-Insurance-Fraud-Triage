@@ -8,12 +8,12 @@ def test_prediction_and_evidence_are_saved(tmp_path):
         source="single",
         model_version="test-model",
         probability=0.42,
-        decision="abstain",
+        decision="defer",
         inputs={"field": "value"},
         evidence=[("evidence.txt", "text/plain", b"example")],
     )
     history = load_history(database)
     assert len(history) == 1
     assert history.iloc[0]["prediction_id"] == prediction_id
-    assert history.iloc[0]["decision"] == "abstain"
+    assert history.iloc[0]["decision"] == "defer"
 

@@ -1,7 +1,7 @@
-scenario,policy,cost_investigation,cost_legitimate_investigation,cost_missed_fraud,cost_delay,investigations,abstentions,missed_fraud_equivalent,expected_total_cost,expected_cost_per_claim
+scenario,policy,cost_investigation,cost_legitimate_investigation,cost_missed_fraud,cost_delay,investigations,deferrals,missed_fraud_equivalent,expected_total_cost,expected_cost_per_claim
 Low-cost,Binary investigate,100,50,5000,40,830,0,47.0,352600.0,114.33203631647211
-Low-cost,Three-way selective,100,50,5000,40,830,469,21.5,242500.0,78.63164721141375
+Low-cost,Three-way defer,100,50,5000,40,830,469,21.5,242500.0,78.63164721141375
 Base,Binary investigate,250,150,10000,100,830,0,47.0,781300.0,253.33981841763944
-Base,Three-way selective,250,150,10000,100,830,469,21.5,569800.0,184.76005188067444
+Base,Three-way defer,250,150,10000,100,830,469,21.5,569800.0,184.76005188067444
 High-loss,Binary investigate,500,300,25000,250,830,0,47.0,1797600.0,582.8793774319066
-High-loss,Three-way selective,500,300,25000,250,830,469,21.5,1268850.0,411.42996108949416
+High-loss,Three-way defer,500,300,25000,250,830,469,21.5,1268850.0,411.42996108949416

@@ -45,14 +45,14 @@ def enrich_fairness(frame: pd.DataFrame) -> pd.DataFrame:
         item = row.to_dict()
         n = int(row["n"])
         approved = int(round(row["approval_rate"] * n))
-        abstained = int(round(row["abstention_rate"] * n))
-        investigated = n - approved - abstained
+        deferred = int(round(row["defer_rate"] * n))
+        investigated = n - approved - deferred
         fraud = int(round(row["fraud_prevalence"] * n))
         missed = int(row["fraud_missed_in_approval_n"])
         approved_legitimate = int(round(row["approval_region_npv"] * approved)) if approved else 0
         for prefix, successes, denominator in [
             ("approval_rate", approved, n),
-            ("abstention_rate", abstained, n),
+            ("defer_rate", deferred, n),
             ("investigation_rate", investigated, n),
             ("fraud_missed_in_approval_rate", missed, fraud),
             ("approval_region_npv", approved_legitimate, approved),
@@ -70,12 +70,12 @@ def cost_comparison_text(costs: pd.DataFrame) -> tuple[str, str]:
     for scenario in costs["scenario"].drop_duplicates():
         subset = costs[costs["scenario"] == scenario].set_index("policy")
         binary = float(subset.loc["Binary investigate", "expected_cost_per_claim"])
-        selective = float(subset.loc["Three-way selective", "expected_cost_per_claim"])
-        difference = selective - binary
+        three_way = float(subset.loc["Three-way defer", "expected_cost_per_claim"])
+        difference = three_way - binary
         if difference < 0:
             lower_count += 1
         comparisons.append(
-            f"{scenario}: £{selective:,.2f} per claim for three-way versus "
+            f"{scenario}: £{three_way:,.2f} per claim for three-way versus "
             f"£{binary:,.2f} for binary ({difference:+,.2f})"
         )
     if lower_count == len(comparisons):
@@ -111,7 +111,7 @@ def markdown_to_latex(markdown: str) -> str:
 \newunicodechar{£}{\pounds}
 \doublespacing
 \linenumbers
-\title{Calibrated Selective Prediction for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Triage}
+\title{Calibrated Three-Way Triage for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Screening}
 \author{Anonymous manuscript}
 \date{}
 \begin{document}
@@ -214,6 +214,60 @@ def main() -> None:
     fairness.to_csv(ROOT / "reports" / "aoa_revision" / "table_08_three_action_fairness.csv", index=False)
     tables["table_08_three_action_fairness.csv"] = fairness
 
+    # Keep the manuscript tables legible while retaining the complete audit as
+    # machine-readable supplementary output. Intersectional rows and the full
+    # set of interval columns remain in table_08_three_action_fairness.csv.
+    main_attributes = ["Sex", "AgeBand", "MaritalStatus"]
+    fairness_main = fairness[fairness["attribute"].isin(main_attributes)][
+        [
+            "attribute",
+            "group",
+            "n",
+            "fraud_cases",
+            "fraud_prevalence",
+            "approval_rate",
+            "defer_rate",
+            "investigation_rate",
+            "investigation_true_positive_rate",
+            "investigation_false_negative_rate",
+            "approval_region_npv",
+        ]
+    ].rename(
+        columns={
+            "fraud_cases": "fraud_n",
+            "fraud_prevalence": "prevalence",
+            "approval_rate": "approve",
+            "defer_rate": "defer",
+            "investigation_rate": "investigate",
+            "investigation_true_positive_rate": "TPR",
+            "investigation_false_negative_rate": "FNR",
+            "approval_region_npv": "approval_NPV",
+        }
+    )
+    fairness_main.to_csv(TABLES / "table_08a_fairness_main.csv", index=False)
+
+    selected = fairness[fairness["attribute"].isin(["Sex", "AgeBand"])].copy()
+    selected["audit_group"] = selected["attribute"] + ": " + selected["group"]
+    chart = selected.pivot_table(
+        index="audit_group",
+        values=["approval_rate", "defer_rate", "investigation_rate"],
+    )
+    fig, axis = plt.subplots(figsize=(10, 5))
+    chart.plot(
+        kind="bar",
+        stacked=True,
+        ax=axis,
+        color=["#4D8C57", "#D99A2B", "#B94F45"],
+    )
+    axis.set_ylabel("Action rate")
+    axis.set_xlabel("Audited group")
+    axis.set_title("Three-action fairness audit")
+    axis.legend(["Approval", "Defer", "Investigation"], frameon=False)
+    axis.tick_params(axis="x", rotation=35)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "figure_05_three_action_fairness.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
     importance = pd.read_csv(REPORTS / "permutation_importance.csv")
     importance.to_csv(TABLES / "table_15_permutation_importance.csv", index=False)
     fig, axis = plt.subplots(figsize=(7.4, 4.8))
@@ -232,6 +286,14 @@ def main() -> None:
     decision = tables["table_05_decision_regions_with_ci.csv"].set_index("action")
     metric_ci = tables["table_06_metric_bootstrap_ci.csv"].set_index("metric")
     threshold_samples = tables["table_07_threshold_bootstrap_samples.csv"]
+    threshold_stability = tables["table_07b_threshold_operational_stability.csv"].set_index("metric")
+    fairness_gap_ci = tables["table_08b_three_action_fairness_gap_ci.csv"]
+    fairness_gap_main = fairness_gap_ci[
+        fairness_gap_ci["attribute"].isin(main_attributes)
+    ][["attribute", "metric", "estimate", "ci_2_5", "ci_97_5"]].rename(
+        columns={"ci_2_5": "low", "ci_97_5": "high"}
+    )
+    fairness_gap_main.to_csv(TABLES / "table_08c_fairness_gap_main.csv", index=False)
     capacity = tables["table_09_fixed_capacity.csv"].set_index("investigation_capacity")
     costs = tables["table_10_operational_cost_sensitivity.csv"]
     ablations = tables["table_11_framework_ablations.csv"].set_index("configuration")
@@ -248,18 +310,6 @@ def main() -> None:
     retained = age.loc["Retain AgeOfPolicyHolder"]
     removed = age.loc["Exclude all direct age-derived fields"]
     cost_direction, cost_text = cost_comparison_text(costs)
-    action_gaps = []
-    for attribute, subset in fairness.groupby("attribute"):
-        action_gaps.append(
-            {
-                "attribute": attribute,
-                "approval": subset["approval_rate"].max() - subset["approval_rate"].min(),
-                "abstention": subset["abstention_rate"].max() - subset["abstention_rate"].min(),
-                "investigation": subset["investigation_rate"].max() - subset["investigation_rate"].min(),
-            }
-        )
-    gaps = pd.DataFrame(action_gaps)
-    max_inv = gaps.loc[gaps["investigation"].idxmax()]
     source_data = pd.read_csv(ROOT / "fraud_oracle.csv")
 
     pr_ci = metric_ci.loc["pr_auc"]
@@ -274,6 +324,7 @@ def main() -> None:
         else "isotonic"
     )
     temporal_delta = float(temporal["test_pr_auc"]) - float(pr_ci["estimate"])
+    fairness_gap_lookup = fairness_gap_ci.set_index(["attribute", "metric"])
 
     replacements = {
         "N_ROWS": f"{len(source_data):,}",
@@ -291,10 +342,10 @@ def main() -> None:
         "APPROVE_THRESHOLD": f"{sigmoid['approve_threshold']:.6f}",
         "INVESTIGATE_THRESHOLD": f"{sigmoid['investigate_threshold']:.6f}",
         "APPROVE_N": f"{int(decision.loc['approve', 'claims']):,}",
-        "ABSTAIN_N": f"{int(decision.loc['abstain', 'claims']):,}",
+        "DEFER_N": f"{int(decision.loc['defer', 'claims']):,}",
         "INVESTIGATE_N": f"{int(decision.loc['investigate', 'claims']):,}",
         "APPROVE_FRAUD_RATE": percent(decision.loc["approve", "fraud_rate"]) + "%",
-        "ABSTAIN_FRAUD_RATE": percent(decision.loc["abstain", "fraud_rate"]) + "%",
+        "DEFER_FRAUD_RATE": percent(decision.loc["defer", "fraud_rate"]) + "%",
         "INVESTIGATE_FRAUD_RATE": percent(decision.loc["investigate", "fraud_rate"]) + "%",
         "APPROVE_NPV": percent(decision.loc["approve", "npv_if_approved"], 2) + "%",
         "CAP5_CAPTURE": percent(capacity.loc[0.05, "fraud_capture_rate"]),
@@ -309,8 +360,8 @@ def main() -> None:
         "COST_RESULT_TEXT": cost_text,
         "RAW_BRIER": number(raw["brier_score"]),
         "CAL_BRIER": number(complete["brier_score"]),
-        "SELECTIVE_COVERAGE": percent(complete["coverage"]) + "%",
-        "SELECTIVE_RISK": percent(complete["selective_error_risk"]) + "%",
+        "DEFER_POLICY_COVERAGE": percent(complete["coverage"]) + "%",
+        "COVERED_ERROR_RATE": percent(complete["covered_error_rate"]) + "%",
         "AGE_RETAIN_PR": number(retained["test_pr_auc"]),
         "AGE_REMOVE_PR": number(removed["test_pr_auc"]),
         "AGE_RETAIN_BRIER": number(retained["test_brier"]),
@@ -319,16 +370,54 @@ def main() -> None:
         "AGE_REMOVE_NPV": percent(removed["approval_npv"], 2) + "%",
         "AGE_RETAIN_GAP": percent(retained["age_investigation_rate_gap"]) + "%",
         "AGE_REMOVE_GAP": percent(removed["age_investigation_rate_gap"]) + "%",
+        "AGE_PR_RELATIVE_CHANGE": percent(
+            (removed["test_pr_auc"] - retained["test_pr_auc"])
+            / retained["test_pr_auc"]
+        )
+        + "%",
+        "AGE_GAP_RELATIVE_CHANGE": percent(
+            (removed["age_investigation_rate_gap"] - retained["age_investigation_rate_gap"])
+            / retained["age_investigation_rate_gap"]
+        )
+        + "%",
         "AGE_INTERPRETATION": (
             "Removal reduced the observed age disparity without a material PR-AUC loss."
             if removed["age_investigation_rate_gap"] < retained["age_investigation_rate_gap"]
             and removed["test_pr_auc"] >= retained["test_pr_auc"] - 0.01
             else "Removal exposed a measurable performance–disparity trade-off that requires governance judgement."
         ),
-        "MAX_INV_GAP": percent(max_inv["investigation"]) + "%",
-        "MAX_INV_ATTRIBUTE": str(max_inv["attribute"]),
-        "MAX_APPROVAL_GAP": percent(gaps["approval"].max()) + "%",
-        "MAX_ABSTAIN_GAP": percent(gaps["abstention"].max()) + "%",
+        "AGE_INV_GAP_LOW": percent(
+            fairness_gap_lookup.loc[("AgeBand", "Investigation-rate gap"), "ci_2_5"]
+        )
+        + "%",
+        "AGE_INV_GAP_HIGH": percent(
+            fairness_gap_lookup.loc[("AgeBand", "Investigation-rate gap"), "ci_97_5"]
+        )
+        + "%",
+        "AGE_TPR_GAP": percent(
+            fairness_gap_lookup.loc[("AgeBand", "Investigation TPR gap"), "estimate"]
+        )
+        + "%",
+        "AGE_TPR_GAP_LOW": percent(
+            fairness_gap_lookup.loc[("AgeBand", "Investigation TPR gap"), "ci_2_5"]
+        )
+        + "%",
+        "AGE_TPR_GAP_HIGH": percent(
+            fairness_gap_lookup.loc[("AgeBand", "Investigation TPR gap"), "ci_97_5"]
+        )
+        + "%",
+        "SEX_INV_GAP": percent(
+            fairness_gap_lookup.loc[("Sex", "Investigation-rate gap"), "estimate"]
+        )
+        + "%",
+        "SEX_INV_GAP_LOW": percent(
+            fairness_gap_lookup.loc[("Sex", "Investigation-rate gap"), "ci_2_5"]
+        )
+        + "%",
+        "SEX_INV_GAP_HIGH": percent(
+            fairness_gap_lookup.loc[("Sex", "Investigation-rate gap"), "ci_97_5"]
+        )
+        + "%",
         "IMPORTANCE_TEXT": ", ".join(
             f"{row.feature} ({row.importance_mean:.3f})" for row in importance.head(6).itertuples()
         ),
@@ -343,6 +432,18 @@ def main() -> None:
         "INV_BOOT_MEDIAN": number(threshold_samples["investigate_at_or_above"].median()),
         "INV_BOOT_LOW": number(threshold_samples["investigate_at_or_above"].quantile(0.025)),
         "INV_BOOT_HIGH": number(threshold_samples["investigate_at_or_above"].quantile(0.975)),
+        "BOOT_APPROVAL_NPV_MEDIAN": percent(threshold_stability.loc["Approval-region NPV", "median"], 2) + "%",
+        "BOOT_APPROVAL_NPV_LOW": percent(threshold_stability.loc["Approval-region NPV", "ci_2_5"], 2) + "%",
+        "BOOT_APPROVAL_NPV_HIGH": percent(threshold_stability.loc["Approval-region NPV", "ci_97_5"], 2) + "%",
+        "BOOT_FRAUD_CAPTURE_MEDIAN": percent(threshold_stability.loc["Fraud capture", "median"]) + "%",
+        "BOOT_FRAUD_CAPTURE_LOW": percent(threshold_stability.loc["Fraud capture", "ci_2_5"]) + "%",
+        "BOOT_FRAUD_CAPTURE_HIGH": percent(threshold_stability.loc["Fraud capture", "ci_97_5"]) + "%",
+        "BOOT_INV_PRECISION_MEDIAN": percent(threshold_stability.loc["Investigation precision", "median"]) + "%",
+        "BOOT_INV_PRECISION_LOW": percent(threshold_stability.loc["Investigation precision", "ci_2_5"]) + "%",
+        "BOOT_INV_PRECISION_HIGH": percent(threshold_stability.loc["Investigation precision", "ci_97_5"]) + "%",
+        "BOOT_DEFER_MEDIAN": percent(threshold_stability.loc["Defer coverage", "median"]) + "%",
+        "BOOT_DEFER_LOW": percent(threshold_stability.loc["Defer coverage", "ci_2_5"]) + "%",
+        "BOOT_DEFER_HIGH": percent(threshold_stability.loc["Defer coverage", "ci_97_5"]) + "%",
         "TEMPORAL_PR_AUC": number(temporal["test_pr_auc"]),
         "TEMPORAL_ROC_AUC": number(temporal["test_roc_auc"]),
         "TEMPORAL_BRIER": number(temporal["test_brier"]),

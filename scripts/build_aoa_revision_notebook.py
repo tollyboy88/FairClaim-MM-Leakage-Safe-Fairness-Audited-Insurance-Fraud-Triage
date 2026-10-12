@@ -9,7 +9,7 @@ from nbclient import NotebookClient
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "publication" / "aoa" / "notebooks"
-OUT = OUT_DIR / "01_operational_selective_triage_analysis.ipynb"
+OUT = OUT_DIR / "01_operational_three_way_triage_analysis.ipynb"
 
 
 def code(source: str):
@@ -30,7 +30,7 @@ def main() -> None:
     }
     nb.cells = [
         markdown(
-            """# Calibrated selective prediction for motor-insurance fraud triage
+            """# Calibrated three-way motor-insurance fraud triage
 
 This executed notebook is the supplementary analytical record for the revised
 Applied Operations and Analytics submission. The computationally expensive
@@ -106,14 +106,16 @@ age-related information was removed. The sensitivity experiment removes that
 field and compares discrimination, calibration, approval NPV and the
 between-age-band investigation-rate gap.
 
-Fairness is evaluated across approval, abstention and investigation rather than
+Fairness is evaluated across approval, defer and investigation rather than
 only at the binary investigation boundary."""
         ),
         code(
             """age_proxy = pd.read_csv(TABLES / "table_03_age_proxy_sensitivity.csv")
 action_fairness = pd.read_csv(TABLES / "table_08_three_action_fairness.csv")
+fairness_gap_ci = pd.read_csv(TABLES / "table_08b_three_action_fairness_gap_ci.csv")
 display(age_proxy)
 display(action_fairness)
+display(fairness_gap_ci)
 display(Image(filename=str(FIGURES / "figure_02_age_proxy_sensitivity.png")))
 display(Image(filename=str(FIGURES / "figure_05_three_action_fairness.png")))"""
         ),
@@ -145,14 +147,14 @@ capture and investigation precision are reported at 5%, 10%, 20% and 30%.
 Illustrative expected cost is
 
 \[
-C = n_Ic_I + FP_Ic_L +
-\left(FN_A + 0.25FN_U\right)c_F + TN_Uc_D,
+C=c_IN_I+c_LN_{I0}+c_F\left(N_{A1}+\rho N_{D1}\right)+c_DN_{D0},
+\qquad \rho=0.25,
 \]
 
-where \(I,A,U\) denote investigate, approve and abstain; \(c_I\) is investigation
-cost, \(c_L\) is legitimate-claim investigation burden, \(c_F\) is missed-fraud
-loss and \(c_D\) is legitimate-payment delay. These are sensitivity assumptions,
-not observed claim amounts."""
+where \(N_I\) is the number investigated; \(N_{I0}\), \(N_{A1}\),
+\(N_{D1}\), and \(N_{D0}\) count legitimate investigations, approved fraud,
+deferred fraud, and legitimate deferrals. The \(c\) terms are declared scenario
+costs. These are sensitivity assumptions, not observed claim amounts."""
         ),
         code(
             """capacity = pd.read_csv(TABLES / "table_09_fixed_capacity.csv")
@@ -171,10 +173,12 @@ experiment trained on 1994, tuned on 1995 and tested on 1996."""
         code(
             """metric_ci = pd.read_csv(TABLES / "table_06_metric_bootstrap_ci.csv")
 thresholds = pd.read_csv(TABLES / "table_07_threshold_bootstrap_samples.csv")
+threshold_operations = pd.read_csv(TABLES / "table_07b_threshold_operational_stability.csv")
 seeds = pd.read_csv(TABLES / "table_13_repeated_seeds.csv")
 temporal = pd.read_csv(TABLES / "table_14_temporal_validation.csv")
 display(metric_ci)
 display(thresholds.describe(percentiles=[.025, .5, .975]))
+display(threshold_operations)
 display(seeds)
 display(temporal)
 display(Image(filename=str(FIGURES / "figure_06_uncertainty_robustness.png")))"""

@@ -10,7 +10,7 @@ flowchart LR
     F --> G[Untouched test audit]
     E --> H[Versioned model bundle]
     H --> I[Streamlit single and batch assessment]
-    I --> J[Approve / abstain / investigate]
+    I --> J[Approve / defer / investigate]
     I --> K[Local explanations]
     I --> L[(SQLite predictions and evidence)]
     G --> M[Performance and fairness reports]

@@ -1,6 +1,6 @@
 {
   "target_journal": "Applied Operations and Analytics",
-  "title": "Calibrated Selective Prediction for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Triage",
+  "title": "Calibrated Three-Way Triage for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Screening",
   "rows": 15420,
   "fraud_prevalence": 0.05985732814526589,
   "primary_model": "HistGradientBoosting without balancing",
@@ -52,5 +52,246 @@
     "investigate_median": 0.09979431359840878,
     "investigate_ci_97_5": 0.12388282370414738
   },
-  "cost_assumption_note": "Illustrative GBP scenarios, not observed claim amounts. Abstained fraud is assigned 25% of missed-fraud cost, representing 75% recovery through manual review."
+  "threshold_operational_stability": [
+    {
+      "metric": "Approval threshold",
+      "median": 0.048577577784782576,
+      "ci_2_5": 0.031326712539297044,
+      "ci_97_5": 0.06996861611489637,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Investigation threshold",
+      "median": 0.09979431359840878,
+      "ci_2_5": 0.07608596228780454,
+      "ci_97_5": 0.12388282370414738,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Approval coverage",
+      "median": 0.5830090791180286,
+      "ci_2_5": 0.5444228274967574,
+      "ci_97_5": 0.6478599221789884,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Approval-region NPV",
+      "median": 0.991698948533481,
+      "ci_2_5": 0.9854854854854855,
+      "ci_97_5": 0.9946396664681358,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Defer coverage",
+      "median": 0.17671854734111545,
+      "ci_2_5": 0.08147697795071336,
+      "ci_97_5": 0.2659046692607004,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Investigation coverage",
+      "median": 0.2444876783398184,
+      "ci_2_5": 0.17315175097276264,
+      "ci_97_5": 0.32501621271076514,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Fraud capture",
+      "median": 0.7189189189189189,
+      "ci_2_5": 0.5675675675675675,
+      "ci_97_5": 0.7948648648648646,
+      "bootstrap_samples": 500
+    },
+    {
+      "metric": "Investigation precision",
+      "median": 0.17639257294429708,
+      "ci_2_5": 0.14670543002425407,
+      "ci_97_5": 0.1974169741697417,
+      "bootstrap_samples": 500
+    }
+  ],
+  "fairness_gap_intervals": [
+    {
+      "attribute": "AgeBand",
+      "metric": "Approval-rate gap",
+      "estimate": 0.08801104867850995,
+      "ci_2_5": 0.044029377692767345,
+      "median": 0.11441520879587386,
+      "ci_97_5": 0.2190965934148295,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "AgeBand",
+      "metric": "Defer-rate gap",
+      "estimate": 0.16500987381597887,
+      "ci_2_5": 0.11806988479047062,
+      "median": 0.17028630227749397,
+      "ci_97_5": 0.2215479597271097,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "AgeBand",
+      "metric": "Investigation FNR gap",
+      "estimate": 0.34375,
+      "ci_2_5": 0.27644876819708847,
+      "median": 0.36666666666666664,
+      "ci_97_5": 0.5270833333333333,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "AgeBand",
+      "metric": "Investigation TPR gap",
+      "estimate": 0.34375,
+      "ci_2_5": 0.2764487681970884,
+      "median": 0.3666666666666667,
+      "ci_97_5": 0.5270833333333333,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "AgeBand",
+      "metric": "Investigation-rate gap",
+      "estimate": 0.16286864887024044,
+      "ci_2_5": 0.09579781264304421,
+      "median": 0.17485851495591337,
+      "ci_97_5": 0.30692688579856714,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "MaritalStatus",
+      "metric": "Approval-rate gap",
+      "estimate": 0.03870015058743448,
+      "ci_2_5": 0.005507928803420587,
+      "median": 0.03946678585111035,
+      "ci_97_5": 0.07797629929460519,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "MaritalStatus",
+      "metric": "Defer-rate gap",
+      "estimate": 0.045314619077347004,
+      "ci_2_5": 0.020095361104740615,
+      "median": 0.04625621279770612,
+      "ci_97_5": 0.07399557095933193,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "MaritalStatus",
+      "metric": "Investigation FNR gap",
+      "estimate": 0.07246376811594205,
+      "ci_2_5": 0.002753296440527419,
+      "median": 0.07631640195616575,
+      "ci_97_5": 0.18605165183653555,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "MaritalStatus",
+      "metric": "Investigation TPR gap",
+      "estimate": 0.07246376811594202,
+      "ci_2_5": 0.0027532964405274337,
+      "median": 0.07631640195616568,
+      "ci_97_5": 0.18605165183653544,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "MaritalStatus",
+      "metric": "Investigation-rate gap",
+      "estimate": 0.0066144684899125394,
+      "ci_2_5": 0.0011581655800644546,
+      "median": 0.012867364144949461,
+      "ci_97_5": 0.04175788759458899,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex",
+      "metric": "Approval-rate gap",
+      "estimate": 0.06678628805107556,
+      "ci_2_5": 0.020031288863711062,
+      "median": 0.0675741913780043,
+      "ci_97_5": 0.11247538016835175,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex",
+      "metric": "Defer-rate gap",
+      "estimate": 0.002835212270001247,
+      "ci_2_5": 0.0006541113216190851,
+      "median": 0.01209754038182878,
+      "ci_97_5": 0.04246223372733288,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex",
+      "metric": "Investigation FNR gap",
+      "estimate": 0.08943089430894308,
+      "ci_2_5": 0.006467585403726717,
+      "median": 0.10061382016779771,
+      "ci_97_5": 0.2987416845821753,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex",
+      "metric": "Investigation TPR gap",
+      "estimate": 0.08943089430894313,
+      "ci_2_5": 0.006467585403726729,
+      "median": 0.10061382016779769,
+      "ci_97_5": 0.29874168458217526,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex",
+      "metric": "Investigation-rate gap",
+      "estimate": 0.06395107578107431,
+      "ci_2_5": 0.02759437752552895,
+      "median": 0.06256565907345589,
+      "ci_97_5": 0.10905138284786949,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex_x_AgeBand",
+      "metric": "Approval-rate gap",
+      "estimate": 0.1875,
+      "ci_2_5": 0.13117692996990585,
+      "median": 0.23450057683371758,
+      "ci_97_5": 0.40531527164080533,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex_x_AgeBand",
+      "metric": "Defer-rate gap",
+      "estimate": 0.17934782608695654,
+      "ci_2_5": 0.13978104750753834,
+      "median": 0.202095224489148,
+      "ci_97_5": 0.3509367321867322,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex_x_AgeBand",
+      "metric": "Investigation FNR gap",
+      "estimate": 0.6666666666666666,
+      "ci_2_5": 0.4,
+      "median": 0.75,
+      "ci_97_5": 1.0,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex_x_AgeBand",
+      "metric": "Investigation TPR gap",
+      "estimate": 0.6666666666666667,
+      "ci_2_5": 0.4,
+      "median": 0.75,
+      "ci_97_5": 1.0,
+      "bootstrap_samples": 500
+    },
+    {
+      "attribute": "Sex_x_AgeBand",
+      "metric": "Investigation-rate gap",
+      "estimate": 0.21246376811594206,
+      "ci_2_5": 0.15392992424242424,
+      "median": 0.25961064797271693,
+      "ci_97_5": 0.39244522699578177,
+      "bootstrap_samples": 500
+    }
+  ],
+  "binary_comparator_protocol": "Binary and three-way policies use the identical investigation threshold; the three-way policy alone defers the intermediate-risk band.",
+  "cost_assumption_note": "Illustrative GBP scenarios, not observed claim amounts. Deferred fraud is assigned 25% of missed-fraud cost, representing 75% recovery through manual review."
 }

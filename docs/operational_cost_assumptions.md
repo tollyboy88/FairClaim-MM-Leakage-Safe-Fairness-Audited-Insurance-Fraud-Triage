@@ -19,7 +19,7 @@ analysis reports:
 
 ## Illustrative cost scenarios
 
-| Scenario | Investigation | Additional legitimate-claim burden | Missed fraud | Legitimate abstention delay |
+| Scenario | Investigation | Additional legitimate-claim burden | Missed fraud | Legitimate defer delay |
 |---|---:|---:|---:|---:|
 | Low-cost | £100 | £50 | £5,000 | £40 |
 | Base | £250 | £150 | £10,000 | £100 |
@@ -31,11 +31,11 @@ The calculation is:
 expected cost =
     investigations × investigation cost
   + legitimate investigations × legitimate-claim burden
-  + (fraud approved + 0.25 × fraud abstained) × missed-fraud cost
-  + legitimate abstentions × delay cost
+  + (fraud approved + 0.25 × fraud deferred) × missed-fraud cost
+  + legitimate deferrals × delay cost
 ```
 
-The `0.25` multiplier assumes that manual review of abstained claims recovers
+The `0.25` multiplier assumes that manual review of deferred claims recovers
 75% of the loss that would otherwise arise from missed fraud. This is a
 scenario parameter, not an empirical estimate.
 

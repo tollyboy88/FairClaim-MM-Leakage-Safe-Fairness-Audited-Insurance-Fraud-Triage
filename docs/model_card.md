@@ -29,7 +29,7 @@ The training partition contains 554 fraud and 8,698 non-fraud records. Five stra
 ## Decision policy
 
 - Below the low-risk threshold: `approve`
-- Between low- and high-risk thresholds: `abstain`
+- Between low- and high-risk thresholds: `defer`
 - At or above the high-risk threshold: `investigate`
 
 Thresholds are model-versioned and stored in `reports/decision_thresholds.json`. An investigation referral is not a fraud determination.

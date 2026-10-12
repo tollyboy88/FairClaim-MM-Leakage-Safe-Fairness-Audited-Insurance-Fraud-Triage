@@ -304,7 +304,7 @@ def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> tup
 def decision_summary(y: pd.Series, p: np.ndarray, thresholds: dict) -> pd.DataFrame:
     decisions = np.array([assign_decision(value, thresholds) for value in p])
     rows = []
-    for action in ["approve", "abstain", "investigate"]:
+    for action in ["approve", "defer", "investigate"]:
         mask = decisions == action
         cases = int(mask.sum())
         fraud = int(y.to_numpy()[mask].sum())
@@ -351,21 +351,91 @@ def bootstrap_metrics(y: pd.Series, p: np.ndarray, threshold: float, n_bootstrap
     )
 
 
-def threshold_bootstrap(y: pd.Series, p: np.ndarray, n_bootstrap: int = 500) -> pd.DataFrame:
+def threshold_bootstrap(
+    y_validation: pd.Series,
+    p_validation: np.ndarray,
+    y_test: pd.Series,
+    p_test: np.ndarray,
+    n_bootstrap: int = 500,
+) -> pd.DataFrame:
+    """Reselect thresholds on validation bootstraps and apply them to the fixed test set.
+
+    The operational ranges therefore quantify threshold-selection instability. They
+    do not represent a second bootstrap of the held-out test population.
+    """
     rng = np.random.default_rng(SEED)
-    y_array = y.to_numpy()
+    y_validation_array = y_validation.to_numpy()
+    y_test_array = y_test.to_numpy()
+    total_test_fraud = int(y_test_array.sum())
     rows = []
     for iteration in range(n_bootstrap):
-        idx = rng.integers(0, len(y_array), len(y_array))
-        thresholds = select_thresholds(y_array[idx], p[idx], target_npv=0.99)
+        idx = rng.integers(0, len(y_validation_array), len(y_validation_array))
+        thresholds = select_thresholds(
+            y_validation_array[idx], p_validation[idx], target_npv=0.99
+        )
+        threshold_dict = {
+            "approve_below": thresholds.approve_below,
+            "investigate_at_or_above": thresholds.investigate_at_or_above,
+        }
+        decisions = np.array(
+            [assign_decision(value, threshold_dict) for value in p_test]
+        )
+        approved = decisions == "approve"
+        deferred = decisions == "defer"
+        investigated = decisions == "investigate"
+        approved_n = int(approved.sum())
+        investigated_n = int(investigated.sum())
         rows.append(
             {
                 "iteration": iteration,
                 "approve_below": thresholds.approve_below,
                 "investigate_at_or_above": thresholds.investigate_at_or_above,
+                "approval_coverage": approved.mean(),
+                "approval_npv": (
+                    float((y_test_array[approved] == 0).mean())
+                    if approved_n
+                    else np.nan
+                ),
+                "defer_coverage": deferred.mean(),
+                "investigation_coverage": investigated.mean(),
+                "fraud_capture_rate": (
+                    float(y_test_array[investigated].sum() / total_test_fraud)
+                    if total_test_fraud
+                    else np.nan
+                ),
+                "investigation_precision": (
+                    float(y_test_array[investigated].mean())
+                    if investigated_n
+                    else np.nan
+                ),
             }
         )
     return pd.DataFrame(rows)
+
+
+def summarise_threshold_bootstrap(samples: pd.DataFrame) -> pd.DataFrame:
+    labels = {
+        "approve_below": "Approval threshold",
+        "investigate_at_or_above": "Investigation threshold",
+        "approval_coverage": "Approval coverage",
+        "approval_npv": "Approval-region NPV",
+        "defer_coverage": "Defer coverage",
+        "investigation_coverage": "Investigation coverage",
+        "fraud_capture_rate": "Fraud capture",
+        "investigation_precision": "Investigation precision",
+    }
+    return pd.DataFrame(
+        [
+            {
+                "metric": labels[column],
+                "median": samples[column].median(),
+                "ci_2_5": samples[column].quantile(0.025),
+                "ci_97_5": samples[column].quantile(0.975),
+                "bootstrap_samples": int(samples[column].notna().sum()),
+            }
+            for column in labels
+        ]
+    )
 
 
 def action_fairness(
@@ -392,18 +462,21 @@ def action_fairness(
             pg = p[mask]
             dg = decisions[mask]
             approval = dg == "approve"
-            abstention = dg == "abstain"
+            deferred = dg == "defer"
             investigation = dg == "investigate"
             approved_n = int(approval.sum())
             approved_legitimate = int(((yg == 0) & approval).sum())
             fraud_n = int((yg == 1).sum())
+            fraud_investigated = int(((yg == 1) & investigation).sum())
             approve_low, approve_high = wilson_interval(int(approval.sum()), len(yg))
-            abstain_low, abstain_high = wilson_interval(int(abstention.sum()), len(yg))
+            defer_low, defer_high = wilson_interval(int(deferred.sum()), len(yg))
             investigate_low, investigate_high = wilson_interval(int(investigation.sum()), len(yg))
             missed_low, missed_high = wilson_interval(
                 int(((yg == 1) & approval).sum()), fraud_n
             )
             npv_low, npv_high = wilson_interval(approved_legitimate, approved_n)
+            tpr_low, tpr_high = wilson_interval(fraud_investigated, fraud_n)
+            fnr_low, fnr_high = wilson_interval(fraud_n - fraud_investigated, fraud_n)
             ece = 0.0
             for bin_indices in np.array_split(np.argsort(pg), min(10, len(pg))):
                 if len(bin_indices):
@@ -417,9 +490,9 @@ def action_fairness(
                     "approval_rate": approval.mean(),
                     "approval_rate_ci_low": approve_low,
                     "approval_rate_ci_high": approve_high,
-                    "abstention_rate": abstention.mean(),
-                    "abstention_rate_ci_low": abstain_low,
-                    "abstention_rate_ci_high": abstain_high,
+                    "defer_rate": deferred.mean(),
+                    "defer_rate_ci_low": defer_low,
+                    "defer_rate_ci_high": defer_high,
                     "investigation_rate": investigation.mean(),
                     "investigation_rate_ci_low": investigate_low,
                     "investigation_rate_ci_high": investigate_high,
@@ -430,10 +503,98 @@ def action_fairness(
                     "approval_region_npv": approved_legitimate / approved_n if approved_n else np.nan,
                     "approval_region_npv_ci_low": npv_low,
                     "approval_region_npv_ci_high": npv_high,
+                    "fraud_cases": fraud_n,
+                    "investigation_true_positive_rate": (
+                        fraud_investigated / fraud_n if fraud_n else np.nan
+                    ),
+                    "investigation_true_positive_rate_ci_low": tpr_low,
+                    "investigation_true_positive_rate_ci_high": tpr_high,
+                    "investigation_false_negative_rate": (
+                        (fraud_n - fraud_investigated) / fraud_n
+                        if fraud_n
+                        else np.nan
+                    ),
+                    "investigation_false_negative_rate_ci_low": fnr_low,
+                    "investigation_false_negative_rate_ci_high": fnr_high,
                     "mean_probability": pg.mean(),
                     "expected_calibration_error": ece,
                 }
             )
+    return pd.DataFrame(rows)
+
+
+def bootstrap_action_fairness_gaps(
+    y: pd.Series,
+    p: np.ndarray,
+    thresholds: dict,
+    audit: pd.DataFrame,
+    n_bootstrap: int = 500,
+) -> pd.DataFrame:
+    """Bootstrap max-minus-min action and fraud-detection gaps by audit attribute."""
+    y_array = y.to_numpy()
+    audit = audit.reset_index(drop=True)
+    full = action_fairness(y, p, thresholds, audit)
+    point_rows = []
+    metric_columns = {
+        "approval_rate": "Approval-rate gap",
+        "defer_rate": "Defer-rate gap",
+        "investigation_rate": "Investigation-rate gap",
+        "investigation_true_positive_rate": "Investigation TPR gap",
+        "investigation_false_negative_rate": "Investigation FNR gap",
+    }
+    for attribute, part in full.groupby("attribute"):
+        for column, label in metric_columns.items():
+            values = pd.to_numeric(part[column], errors="coerce").dropna()
+            if len(values) >= 2:
+                point_rows.append(
+                    {
+                        "attribute": attribute,
+                        "metric": label,
+                        "estimate": float(values.max() - values.min()),
+                    }
+                )
+    point = pd.DataFrame(point_rows)
+
+    rng = np.random.default_rng(SEED)
+    samples = []
+    for iteration in range(n_bootstrap):
+        idx = rng.integers(0, len(y_array), len(y_array))
+        detail = action_fairness(
+            pd.Series(y_array[idx]),
+            p[idx],
+            thresholds,
+            audit.iloc[idx].reset_index(drop=True),
+        )
+        for attribute, part in detail.groupby("attribute"):
+            for column, label in metric_columns.items():
+                values = pd.to_numeric(part[column], errors="coerce").dropna()
+                if len(values) >= 2:
+                    samples.append(
+                        {
+                            "iteration": iteration,
+                            "attribute": attribute,
+                            "metric": label,
+                            "gap": float(values.max() - values.min()),
+                        }
+                    )
+    boot = pd.DataFrame(samples)
+    rows = []
+    for (attribute, metric), part in boot.groupby(["attribute", "metric"]):
+        estimate = point.loc[
+            (point["attribute"] == attribute) & (point["metric"] == metric),
+            "estimate",
+        ]
+        rows.append(
+            {
+                "attribute": attribute,
+                "metric": metric,
+                "estimate": float(estimate.iloc[0]) if not estimate.empty else np.nan,
+                "ci_2_5": part["gap"].quantile(0.025),
+                "median": part["gap"].median(),
+                "ci_97_5": part["gap"].quantile(0.975),
+                "bootstrap_samples": int(len(part)),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -467,21 +628,30 @@ def cost_analysis(y: pd.Series, p: np.ndarray, thresholds: dict) -> pd.DataFrame
         "Base": {"investigation": 250, "legitimate_investigation": 150, "missed_fraud": 10000, "delay": 100},
         "High-loss": {"investigation": 500, "legitimate_investigation": 300, "missed_fraud": 25000, "delay": 250},
     }
-    policies = {"Binary investigate": np.where(p >= thresholds["investigate_at_or_above"], "investigate", "approve"),
-                "Three-way selective": decisions}
+    # Both policies use the same investigation threshold and therefore the same
+    # investigation capacity. The only policy difference is whether the middle
+    # risk band is approved immediately or deferred for additional evidence.
+    policies = {
+        "Binary investigate": np.where(
+            p >= thresholds["investigate_at_or_above"],
+            "investigate",
+            "approve",
+        ),
+        "Three-way defer": decisions,
+    }
     rows = []
     for scenario, costs in scenarios.items():
         for policy, action in policies.items():
             investigate = action == "investigate"
-            abstain = action == "abstain"
+            deferred = action == "defer"
             approve = action == "approve"
             missed_approve = int(((y_array == 1) & approve).sum())
-            missed_abstain_equivalent = 0.25 * int(((y_array == 1) & abstain).sum())
+            missed_defer_equivalent = 0.25 * int(((y_array == 1) & deferred).sum())
             total = (
                 investigate.sum() * costs["investigation"]
                 + ((y_array == 0) & investigate).sum() * costs["legitimate_investigation"]
-                + (missed_approve + missed_abstain_equivalent) * costs["missed_fraud"]
-                + ((y_array == 0) & abstain).sum() * costs["delay"]
+                + (missed_approve + missed_defer_equivalent) * costs["missed_fraud"]
+                + ((y_array == 0) & deferred).sum() * costs["delay"]
             )
             rows.append(
                 {
@@ -489,8 +659,8 @@ def cost_analysis(y: pd.Series, p: np.ndarray, thresholds: dict) -> pd.DataFrame
                     "policy": policy,
                     **{f"cost_{key}": value for key, value in costs.items()},
                     "investigations": int(investigate.sum()),
-                    "abstentions": int(abstain.sum()),
-                    "missed_fraud_equivalent": missed_approve + missed_abstain_equivalent,
+                    "deferrals": int(deferred.sum()),
+                    "missed_fraud_equivalent": missed_approve + missed_defer_equivalent,
                     "expected_total_cost": total,
                     "expected_cost_per_claim": total / len(y_array),
                 }
@@ -498,7 +668,7 @@ def cost_analysis(y: pd.Series, p: np.ndarray, thresholds: dict) -> pd.DataFrame
     return pd.DataFrame(rows)
 
 
-def selective_ablation(
+def policy_ablation(
     y_validation: pd.Series,
     raw_validation: np.ndarray,
     calibrated_validation: np.ndarray,
@@ -513,20 +683,20 @@ def selective_ablation(
 
     raw_binary_threshold = f2_threshold(y_validation, raw_validation)
     calibrated_binary_threshold = f2_threshold(y_validation, calibrated_validation)
-    raw_selective = select_thresholds(y_validation.to_numpy(), raw_validation, 0.99)
-    calibrated_selective = select_thresholds(y_validation.to_numpy(), calibrated_validation, 0.99)
+    raw_three_way = select_thresholds(y_validation.to_numpy(), raw_validation, 0.99)
+    calibrated_three_way = select_thresholds(y_validation.to_numpy(), calibrated_validation, 0.99)
     configurations = [
         ("Uncalibrated binary", raw_test, {"approve_below": raw_binary_threshold, "investigate_at_or_above": raw_binary_threshold}, False),
         ("Calibrated binary", calibrated_test, {"approve_below": calibrated_binary_threshold, "investigate_at_or_above": calibrated_binary_threshold}, False),
-        ("Uncalibrated selective", raw_test, {"approve_below": raw_selective.approve_below, "investigate_at_or_above": raw_selective.investigate_at_or_above}, False),
-        ("Calibrated selective, no fairness audit", calibrated_test, {"approve_below": calibrated_selective.approve_below, "investigate_at_or_above": calibrated_selective.investigate_at_or_above}, False),
-        ("Complete framework", calibrated_test, {"approve_below": calibrated_selective.approve_below, "investigate_at_or_above": calibrated_selective.investigate_at_or_above}, True),
+        ("Uncalibrated three-way defer", raw_test, {"approve_below": raw_three_way.approve_below, "investigate_at_or_above": raw_three_way.investigate_at_or_above}, False),
+        ("Calibrated three-way defer, no fairness audit", calibrated_test, {"approve_below": calibrated_three_way.approve_below, "investigate_at_or_above": calibrated_three_way.investigate_at_or_above}, False),
+        ("Complete framework", calibrated_test, {"approve_below": calibrated_three_way.approve_below, "investigate_at_or_above": calibrated_three_way.investigate_at_or_above}, True),
     ]
     rows = []
     y_array = y_test.to_numpy()
     for name, p, thresholds, audit_present in configurations:
         decisions = np.array([assign_decision(value, thresholds) for value in p])
-        covered = decisions != "abstain"
+        covered = decisions != "defer"
         predicted = decisions == "investigate"
         approved = decisions == "approve"
         investigated = decisions == "investigate"
@@ -534,21 +704,21 @@ def selective_ablation(
             {
                 "configuration": name,
                 "calibrated": "Calibrated" in name or name == "Complete framework",
-                "abstention_enabled": bool((decisions == "abstain").any()),
+                "defer_enabled": bool((decisions == "defer").any()),
                 "fairness_audit_present": audit_present,
                 "pr_auc": average_precision_score(y_array, p),
                 "brier_score": brier_score_loss(y_array, p),
                 "coverage": covered.mean(),
-                "selective_error_risk": (predicted[covered] != y_array[covered]).mean() if covered.any() else np.nan,
+                "covered_error_rate": (predicted[covered] != y_array[covered]).mean() if covered.any() else np.nan,
                 "approval_npv": (y_array[approved] == 0).mean() if approved.any() else np.nan,
                 "investigation_precision": y_array[investigated].mean() if investigated.any() else np.nan,
-                "abstention_rate": (decisions == "abstain").mean(),
+                "defer_rate": (decisions == "defer").mean(),
             }
         )
     return pd.DataFrame(rows)
 
 
-def coverage_risk_curve(y: pd.Series, p: np.ndarray) -> pd.DataFrame:
+def coverage_error_curve(y: pd.Series, p: np.ndarray) -> pd.DataFrame:
     y_array = y.to_numpy()
     # Confidence is distance from the binary operating threshold chosen for F2.
     precision, recall, thresholds = precision_recall_curve(y_array, p)
@@ -564,7 +734,7 @@ def coverage_risk_curve(y: pd.Series, p: np.ndarray) -> pd.DataFrame:
         rows.append(
             {
                 "coverage": n / len(y_array),
-                "selective_error_risk": (pred != y_array[idx]).mean(),
+                "covered_error_rate": (pred != y_array[idx]).mean(),
                 "threshold": threshold,
             }
         )
@@ -775,10 +945,10 @@ def plot_outputs(
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(6.8, 4.2))
-    ax.plot(coverage["coverage"], coverage["selective_error_risk"], color=blue, linewidth=2)
+    ax.plot(coverage["coverage"], coverage["covered_error_rate"], color=blue, linewidth=2)
     ax.set_xlabel("Coverage (fraction receiving approve/investigate)")
-    ax.set_ylabel("Selective classification error")
-    ax.set_title("Coverage-risk curve")
+    ax.set_ylabel("Covered-case error rate")
+    ax.set_title("Confidence-margin coverage and error")
     fig.tight_layout()
     fig.savefig(FIGURE_DIR / "figure_04_coverage_risk.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -787,14 +957,14 @@ def plot_outputs(
     selected["audit_group"] = selected["attribute"] + ": " + selected["group"]
     chart = selected.pivot_table(
         index="audit_group",
-        values=["approval_rate", "abstention_rate", "investigation_rate"],
+        values=["approval_rate", "defer_rate", "investigation_rate"],
     )
     fig, ax = plt.subplots(figsize=(10, 5))
     chart.plot(kind="bar", stacked=True, ax=ax, color=[green, gold, red])
     ax.set_ylabel("Action rate")
     ax.set_xlabel("Audited group")
     ax.set_title("Three-action fairness audit")
-    ax.legend(["Abstention", "Approval", "Investigation"], frameon=False)
+    ax.legend(["Approval", "Defer", "Investigation"], frameon=False)
     ax.tick_params(axis="x", rotation=35)
     fig.tight_layout()
     fig.savefig(FIGURE_DIR / "figure_05_three_action_fairness.png", dpi=300, bbox_inches="tight")
@@ -844,13 +1014,25 @@ def main() -> None:
     bootstrap_ci = bootstrap_metrics(
         split.y_test, sigmoid_test, sigmoid_thresholds["investigate_at_or_above"]
     )
-    threshold_samples = threshold_bootstrap(split.y_validation, sigmoid_validation)
+    threshold_samples = threshold_bootstrap(
+        split.y_validation,
+        sigmoid_validation,
+        split.y_test,
+        sigmoid_test,
+    )
+    threshold_operational_summary = summarise_threshold_bootstrap(threshold_samples)
     action_fair = action_fairness(
         split.y_test, sigmoid_test, sigmoid_thresholds, split.audit_test
     )
+    action_fairness_gaps = bootstrap_action_fairness_gaps(
+        split.y_test,
+        sigmoid_test,
+        sigmoid_thresholds,
+        split.audit_test,
+    )
     capacity = capacity_analysis(split.y_test, sigmoid_test)
     costs = cost_analysis(split.y_test, sigmoid_test, sigmoid_thresholds)
-    ablations = selective_ablation(
+    ablations = policy_ablation(
         split.y_validation,
         raw_validation,
         sigmoid_validation,
@@ -858,7 +1040,7 @@ def main() -> None:
         raw_test,
         sigmoid_test,
     )
-    coverage = coverage_risk_curve(split.y_test, sigmoid_test)
+    coverage = coverage_error_curve(split.y_test, sigmoid_test)
     seeds = repeated_seed_analysis(data)
     temporal = temporal_validation(data)
 
@@ -870,7 +1052,9 @@ def main() -> None:
         "table_05_decision_regions_with_ci.csv": decision,
         "table_06_metric_bootstrap_ci.csv": bootstrap_ci,
         "table_07_threshold_bootstrap_samples.csv": threshold_samples,
+        "table_07b_threshold_operational_stability.csv": threshold_operational_summary,
         "table_08_three_action_fairness.csv": action_fair,
+        "table_08b_three_action_fairness_gap_ci.csv": action_fairness_gaps,
         "table_09_fixed_capacity.csv": capacity,
         "table_10_operational_cost_sensitivity.csv": costs,
         "table_11_framework_ablations.csv": ablations,
@@ -884,7 +1068,7 @@ def main() -> None:
 
     summary = {
         "target_journal": "Applied Operations and Analytics",
-        "title": "Calibrated Selective Prediction for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Triage",
+        "title": "Calibrated Three-Way Triage for Leakage-Safe and Fairness-Audited Motor Insurance Fraud Screening",
         "rows": len(data),
         "fraud_prevalence": float(data[TARGET].mean()),
         "primary_model": "HistGradientBoosting without balancing",
@@ -903,7 +1087,13 @@ def main() -> None:
             "investigate_median": threshold_samples.investigate_at_or_above.median(),
             "investigate_ci_97_5": threshold_samples.investigate_at_or_above.quantile(0.975),
         },
-        "cost_assumption_note": "Illustrative GBP scenarios, not observed claim amounts. Abstained fraud is assigned 25% of missed-fraud cost, representing 75% recovery through manual review.",
+        "threshold_operational_stability": threshold_operational_summary.to_dict(orient="records"),
+        "fairness_gap_intervals": action_fairness_gaps.to_dict(orient="records"),
+        "binary_comparator_protocol": (
+            "Binary and three-way policies use the identical investigation threshold; "
+            "the three-way policy alone defers the intermediate-risk band."
+        ),
+        "cost_assumption_note": "Illustrative GBP scenarios, not observed claim amounts. Deferred fraud is assigned 25% of missed-fraud cost, representing 75% recovery through manual review.",
     }
     save_json(REPORT_DIR / "analysis_summary.json", summary)
 
