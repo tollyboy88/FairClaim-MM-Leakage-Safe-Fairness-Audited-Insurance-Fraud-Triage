@@ -1,0 +1,49 @@
+name: Reproducibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tabular-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Download the public Fraud Oracle benchmark
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlretrieve
+          urlretrieve("https://ndownloader.figshare.com/files/44033394", Path("fraud_oracle.csv"))
+          PY
+
+      - name: Train the leakage-safe production model
+        run: python scripts/train_models.py
+
+      - name: Run non-image tests
+        run: >
+          python -m pytest -q
+          tests/test_decision.py
+          tests/test_methodology_contract.py
+          tests/test_storage.py
+          tests/test_inference.py
+          tests/test_streamlit_app.py
+
+      - name: Upload validation reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducibility-outputs
+          path: |
+            reports/

@@ -8,7 +8,13 @@ local_storage/*.db-*
 artifacts/*.joblib
 datasets/
 publication/
-FairClaim-MM_publication_package.zip
+*_publication_package.zip
 fraud_oracle.csv
 insurance_claims.csv
 insurance-fraud-master.zip
+datasets.zip
+*_submission_package/
+*_submission_package.zip
+*.ipynb
+*.docx
+*.tex

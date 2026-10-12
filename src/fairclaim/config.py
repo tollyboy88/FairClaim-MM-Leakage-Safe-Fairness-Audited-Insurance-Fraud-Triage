@@ -14,12 +14,16 @@ ID_COLUMNS = ["PolicyNumber"]
 PROTECTED_COLUMNS = ["Sex", "Age", "MaritalStatus"]
 RANDOM_STATE = 42
 
-# These fields are only used to report subgroup outcomes. They are deliberately
-# excluded from the production model features.
+# These exact fields are only used to report subgroup outcomes. The separate
+# categorical field AgeOfPolicyHolder remains a model feature and should be
+# treated as a possible age proxy during fairness evaluation.
 AUDIT_ONLY_COLUMNS = PROTECTED_COLUMNS
 
 DECISION_LABELS = {
     "approve": "Low calibrated fraud risk; suitable for normal processing.",
-    "abstain": "Intermediate fraud risk; human review or more evidence is required.",
+    "defer": "Intermediate calibrated risk; obtain more evidence or human review.",
+    # Backward-compatible label for locally stored decisions created before
+    # the terminology was updated.
+    "abstain": "Legacy defer label; obtain more evidence or human review.",
     "investigate": "Elevated fraud risk; route to an authorised investigator.",
 }

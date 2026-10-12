@@ -114,5 +114,5 @@ def fuse_review_route(tabular_decision: str, consistency_status: str) -> tuple[s
     if consistency_status != "contradiction":
         return tabular_decision, "No verified cross-evidence contradiction changed the tabular route."
     if tabular_decision == "approve":
-        return "abstain", "A cross-evidence contradiction prevents automatic approval; human review is required."
+        return "defer", "A cross-evidence contradiction prevents normal processing; human review is required."
     return "investigate", "A cross-evidence contradiction escalates an uncertain/high-risk claim for investigation."

@@ -53,7 +53,8 @@ def load_csv(path: Path) -> pd.DataFrame:
 def decision_banner(decision: str, probability: float) -> None:
     labels = {
         "approve": ("Approved for normal processing", st.success),
-        "abstain": ("Abstain — obtain more evidence or human review", st.warning),
+        "defer": ("Defer — obtain more evidence or human review", st.warning),
+        "abstain": ("Defer — obtain more evidence or human review (legacy label)", st.warning),
         "investigate": ("Investigate — elevated fraud risk", st.error),
     }
     title, renderer = labels[decision]
@@ -92,7 +93,7 @@ def overview_page(bundle: dict) -> None:
     st.title("FairClaim-MM decision support")
     st.write(
         "A fairness-aware insurance fraud research prototype. It produces calibrated risk and "
-        "routes claims to **approve**, **investigate**, or **abstain**; it does not make a final legal decision."
+        "routes claims to **approve**, **defer**, or **investigate**; it does not make a final legal decision."
     )
     metrics = bundle["test_metrics"]
     cols = st.columns(5)
@@ -112,7 +113,7 @@ def overview_page(bundle: dict) -> None:
         st.code(
             f"if calibrated_probability < {low:.8f}: approve\n"
             f"elif calibrated_probability >= {high:.8f}: investigate\n"
-            "else: abstain"
+            "else: defer"
         )
         st.write(
             "The investigation boundary maximises validation F2, where "
@@ -430,7 +431,7 @@ def audit_page(bundle: dict) -> None:
     st.markdown(
         """
         - Use `investigate` as a referral signal, never as an automatic fraud finding.
-        - Use `abstain` to request more evidence or route intermediate-risk claims to a trained reviewer.
+        - Use `defer` to request more evidence or route an intermediate-risk claim to a trained reviewer.
         - Monitor false-positive and recall gaps after deployment with labelled outcomes.
         - Revalidate thresholds when prevalence, investigation capacity, or claim mix changes.
         - Keep a human appeal and override process and record the final adjudication separately.
@@ -448,7 +449,8 @@ def history_page(bundle: dict) -> None:
     cols = st.columns(3)
     cols[0].metric("Saved predictions", f"{len(history):,}")
     cols[1].metric("Investigate rate", f"{(history['decision'] == 'investigate').mean():.1%}")
-    cols[2].metric("Abstain rate", f"{(history['decision'] == 'abstain').mean():.1%}")
+    deferred = history["decision"].isin(["defer", "abstain"])
+    cols[2].metric("Defer rate", f"{deferred.mean():.1%}")
     st.dataframe(history, width="stretch", hide_index=True)
     st.download_button(
         "Export history",
@@ -463,7 +465,13 @@ def main() -> None:
     st.sidebar.title("FairClaim-MM")
     page = st.sidebar.radio(
         "Navigate",
-        ["Overview", "Single claim", "Batch upload", "Fairness & explanations", "Local history"],
+        [
+            "Overview",
+            "Single claim",
+            "Batch upload",
+            "Fairness & explanations",
+            "Local history",
+        ],
     )
     st.sidebar.caption(f"Model: {bundle['model_version']}")
     if page == "Overview":
