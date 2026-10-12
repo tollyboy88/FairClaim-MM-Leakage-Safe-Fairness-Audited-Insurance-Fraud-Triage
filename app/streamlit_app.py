@@ -146,7 +146,7 @@ def overview_page(bundle: dict) -> None:
         st.subheader("Class-imbalance strategy comparison")
         imbalance = load_csv(imbalance_path)
         st.caption(
-            "Resampling strategies were applied inside training folds only. No balancing achieved the strongest validation PR-AUC."
+            "Resampling strategies were applied inside training folds only. Model-family selection uses mean five-fold CV PR-AUC; validation PR-AUC is reported as a secondary check."
         )
         st.dataframe(imbalance, width="stretch", hide_index=True)
     decision_summary_path = REPORT_DIR / "decision_policy_test_summary.csv"
@@ -430,7 +430,7 @@ def audit_page(bundle: dict) -> None:
     st.markdown(
         """
         - Use `investigate` as a referral signal, never as an automatic fraud finding.
-        - Use `abstain` to request more evidence or route uncertainty to a trained reviewer.
+        - Use `abstain` to request more evidence or route intermediate-risk claims to a trained reviewer.
         - Monitor false-positive and recall gaps after deployment with labelled outcomes.
         - Revalidate thresholds when prevalence, investigation capacity, or claim mix changes.
         - Keep a human appeal and override process and record the final adjudication separately.
