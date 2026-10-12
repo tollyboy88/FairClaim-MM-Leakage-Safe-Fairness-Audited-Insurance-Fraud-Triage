@@ -20,6 +20,6 @@ AUDIT_ONLY_COLUMNS = PROTECTED_COLUMNS
 
 DECISION_LABELS = {
     "approve": "Low calibrated fraud risk; suitable for normal processing.",
-    "abstain": "Uncertain score; human review or more evidence is required.",
+    "abstain": "Intermediate fraud risk; human review or more evidence is required.",
     "investigate": "Elevated fraud risk; route to an authorised investigator.",
 }
