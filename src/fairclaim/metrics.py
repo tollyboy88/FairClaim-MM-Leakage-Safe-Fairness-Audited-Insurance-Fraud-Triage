@@ -392,12 +392,21 @@ def compare_binary_and_triage_costs(
     thresholds: DecisionThresholds | dict,
     scenarios: dict[str, dict[str, float]],
 ) -> pd.DataFrame:
-    """Compare binary and triage policies at exactly the same investigation cutoff.
+    """Compare binary and three-way policies at the same investigation cutoff.
 
-    Both policies investigate every claim at or above ``investigate_at_or_above``.
-    The binary policy approves the remaining claims; the triage policy sends only
-    the intermediate-risk group for a priced evidence/human-review step. Costs
-    are therefore transparent illustrative inputs, not observed financial loss.
+    The cost specification follows the manuscript exactly:
+
+        C = c_I N_I + c_L N_I0 + c_F (N_A1 + rho N_D1) + c_D N_D0
+
+    where N_I is the number investigated, N_I0 legitimate investigations,
+    N_A1 approved fraud, N_D1 deferred fraud, and N_D0 legitimate deferrals.
+    rho is the residual fraction of the missed-fraud loss after defer review;
+    the manuscript uses rho=0.25, corresponding to an assumed 75% recovery.
+
+    Both policies investigate exactly the same claims. The binary policy approves
+    every non-investigated claim, while the three-way policy defers only the
+    intermediate-risk band. Costs are declared sensitivity inputs, not realised
+    financial savings.
     """
     y = np.asarray(y_true, dtype=int)
     p = np.asarray(probabilities, dtype=float)
@@ -410,33 +419,58 @@ def compare_binary_and_triage_costs(
     triage = np.asarray([assign_decision(probability, thresholds) for probability in p])
     if int((binary == "investigate").sum()) != int((triage == "investigate").sum()):
         raise RuntimeError("Policies must use the same investigation capacity.")
+
     rows: list[dict[str, float | int | str]] = []
     for scenario, costs in scenarios.items():
-        required = {"false_approval_cost", "investigation_cost", "defer_cost"}
+        required = {
+            "investigation_cost",
+            "legitimate_investigation_cost",
+            "missed_fraud_cost",
+            "legitimate_defer_cost",
+            "deferred_fraud_loss_fraction",
+        }
         missing = required.difference(costs)
         if missing:
             raise ValueError(f"Scenario {scenario!r} is missing costs for {sorted(missing)}")
+
+        rho = float(costs["deferred_fraud_loss_fraction"])
+        if not 0.0 <= rho <= 1.0:
+            raise ValueError("deferred_fraud_loss_fraction must be between 0 and 1.")
+
         for policy, decisions in (("binary", binary), ("three_way_triage", triage)):
-            false_approvals = int(((decisions == "approve") & (y == 1)).sum())
-            investigations = int((decisions == "investigate").sum())
-            deferrals = int((decisions == "abstain").sum())
+            investigations = decisions == "investigate"
+            deferrals = decisions == "abstain"
+            approvals = decisions == "approve"
+
+            n_i = int(investigations.sum())
+            n_i0 = int((investigations & (y == 0)).sum())
+            n_a1 = int((approvals & (y == 1)).sum())
+            n_d1 = int((deferrals & (y == 1)).sum())
+            n_d0 = int((deferrals & (y == 0)).sum())
+
             total = (
-                false_approvals * float(costs["false_approval_cost"])
-                + investigations * float(costs["investigation_cost"])
-                + deferrals * float(costs["defer_cost"])
+                float(costs["investigation_cost"]) * n_i
+                + float(costs["legitimate_investigation_cost"]) * n_i0
+                + float(costs["missed_fraud_cost"]) * (n_a1 + rho * n_d1)
+                + float(costs["legitimate_defer_cost"]) * n_d0
             )
             rows.append(
                 {
                     "scenario": scenario,
                     "policy": policy,
                     "investigation_threshold": investigate_threshold,
-                    "investigations": investigations,
-                    "deferrals": deferrals,
-                    "false_approvals": false_approvals,
+                    "investigations": n_i,
+                    "legitimate_investigations": n_i0,
+                    "approved_fraud": n_a1,
+                    "deferred_fraud": n_d1,
+                    "legitimate_deferrals": n_d0,
                     "total_illustrative_cost": float(total),
-                    "false_approval_cost": float(costs["false_approval_cost"]),
+                    "cost_per_claim": float(total / len(y)) if len(y) else np.nan,
                     "investigation_cost": float(costs["investigation_cost"]),
-                    "defer_cost": float(costs["defer_cost"]),
+                    "legitimate_investigation_cost": float(costs["legitimate_investigation_cost"]),
+                    "missed_fraud_cost": float(costs["missed_fraud_cost"]),
+                    "legitimate_defer_cost": float(costs["legitimate_defer_cost"]),
+                    "deferred_fraud_loss_fraction": rho,
                 }
             )
     return pd.DataFrame(rows)
