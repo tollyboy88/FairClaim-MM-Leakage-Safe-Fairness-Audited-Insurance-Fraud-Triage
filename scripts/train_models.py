@@ -254,9 +254,27 @@ def main() -> None:
     )
 
     cost_scenarios = {
-        "low_fraud_loss": {"false_approval_cost": 5_000.0, "investigation_cost": 250.0, "defer_cost": 100.0},
-        "moderate_fraud_loss": {"false_approval_cost": 15_000.0, "investigation_cost": 250.0, "defer_cost": 100.0},
-        "high_fraud_loss": {"false_approval_cost": 30_000.0, "investigation_cost": 250.0, "defer_cost": 100.0},
+        "low_cost": {
+            "investigation_cost": 100.0,
+            "legitimate_investigation_cost": 50.0,
+            "missed_fraud_cost": 5_000.0,
+            "legitimate_defer_cost": 40.0,
+            "deferred_fraud_loss_fraction": 0.25,
+        },
+        "base": {
+            "investigation_cost": 250.0,
+            "legitimate_investigation_cost": 150.0,
+            "missed_fraud_cost": 10_000.0,
+            "legitimate_defer_cost": 100.0,
+            "deferred_fraud_loss_fraction": 0.25,
+        },
+        "high_loss": {
+            "investigation_cost": 500.0,
+            "legitimate_investigation_cost": 300.0,
+            "missed_fraud_cost": 25_000.0,
+            "legitimate_defer_cost": 250.0,
+            "deferred_fraud_loss_fraction": 0.25,
+        },
     }
     compare_binary_and_triage_costs(
         split.y_test, test_probability, threshold_dict, cost_scenarios
