@@ -36,7 +36,7 @@ PNG/JPEG vehicle images are analysed by the separate six-class damage model. A h
 ## Decision meanings
 
 - `approve`: score is below the validation-selected low-risk threshold.
-- `abstain`: score is between the low- and high-risk thresholds; obtain more evidence or use human review.
+- `defer`: score is between the low- and high-risk thresholds; obtain more evidence or use human review.
 - `investigate`: score meets or exceeds the validation-selected investigation threshold.
 
 These are workflow recommendations, not final fraud or coverage decisions.
